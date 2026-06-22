@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>支部情報 | 新居浜市食生活改善推進協議会</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans JP',sans-serif;color:#1a1a1a;line-height:1.7;background:#fff}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-logo{font-size:14px;font-weight:700;color:#FF8C00;text-decoration:none;display:flex;align-items:center;gap:8px}
+.nav-links{display:flex;gap:24px;list-style:none}
+.nav-links a{font-size:13px;color:#555;text-decoration:none;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:#FF8C00;font-weight:700}
+.nav-cta{background:#FF8C00;color:#fff;font-size:13px;padding:8px 16px;border-radius:20px;text-decoration:none}
+
+.page-header{margin-top:60px;background:#FFF4E6;padding:48px 24px;text-align:center}
+.page-header .label{font-size:12px;letter-spacing:3px;color:#FF8C00;font-weight:700;margin-bottom:8px}
+.page-header h1{font-size:clamp(24px,3vw,36px);font-weight:700;color:#1a1a1a}
+.page-header p{font-size:14px;color:#777;margin-top:8px}
+
+.container{max-width:900px;margin:0 auto;padding:48px 24px 80px}
+
+.branches-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px}
+
+.branch-card{background:#fff;border-radius:16px;border:1.5px solid #FFE0C0;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.branch-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(255,140,0,0.12)}
+
+.branch-header{background:linear-gradient(135deg,#FF8C00,#FFB347);padding:20px 24px}
+.branch-number{font-size:11px;color:rgba(255,255,255,0.8);font-weight:700;letter-spacing:2px;margin-bottom:4px}
+.branch-name{font-size:20px;font-weight:700;color:#fff}
+
+.branch-body{padding:20px 24px}
+.branch-item{display:flex;gap:12px;margin-bottom:16px}
+.branch-item:last-child{margin-bottom:0}
+.branch-icon{width:32px;height:32px;border-radius:50%;background:#FFF4E6;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px}
+.branch-info-label{font-size:11px;font-weight:700;color:#FF8C00;letter-spacing:1px;margin-bottom:2px}
+.branch-info-text{font-size:14px;color:#333;line-height:1.6}
+
+.state-msg{text-align:center;padding:60px 24px;color:#999;font-size:14px}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+footer{background:#CC6F00;color:#fff;padding:32px 24px;text-align:center}
+footer p{font-size:13px;color:rgba(255,255,255,0.7);margin-top:6px}
+
+@media(max-width:768px){
+  .nav-links{display:none}
+  .branches-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><span>🌿</span>ヘルスメイト通信</a>
+  <ul class="nav-links">
+    <li><a href="index.html#about">私たちについて</a></li>
+    <li><a href="index.html#activities">活動内容</a></li>
+    <li><a href="index.html#calendar">活動予定</a></li>
+    <li><a href="recipes.html">レシピ</a></li>
+    <li><a href="branches.html" class="active">支部情報</a></li>
+    <li><a href="index.html#contact">お問い合わせ</a></li>
+  </ul>
+  <a href="index.html#contact" class="nav-cta">お問い合わせ</a>
+</nav>
+
+<div class="page-header">
+  <div class="label">BRANCH</div>
+  <h1>支部情報</h1>
+  <p>新居浜市内の各支部の活動場所・日程をご案内します</p>
+</div>
+
+<div class="container">
+  <div class="branches-grid" id="branches-grid">
+    <div class="state-msg" style="grid-column:1/-1">
+      <div class="empty-icon">🏠</div>
+      <p>支部情報を読み込んでいます…</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div style="font-size:14px;font-weight:700;">🌿 新居浜市食生活改善推進協議会</div>
+  <p>© 2026 新居浜市食生活改善推進協議会 All rights reserved.</p>
+</footer>
+
+<script>
+// スプレッドシートを「支部情報」シートで公開後、このURLを差し替えてください
+const CSV_URL = 'BRANCHES_CSV_URL_HERE';
+
+async function loadBranches() {
+  const grid = document.getElementById('branches-grid');
+  if (CSV_URL === 'BRANCHES_CSV_URL_HERE') {
+    grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+      <div class="empty-icon">⚙️</div>
+      <p>スプレッドシートの「支部情報」シートを公開してURLを設定してください</p>
+    </div>`;
+    return;
+  }
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (text.trimStart().startsWith('<')) throw new Error('未公開');
+    const rows = parseCSV(text).slice(1);
+    // 列: No, 支部名, 主な活動場所, 主な開催日程, 公開
+    const branches = rows
+      .filter(r => r[4] && r[4].trim() === '公開' && r[1])
+      .map(r => ({ no: r[0], name: r[1], place: r[2], schedule: r[3] }));
+
+    if (branches.length === 0) {
+      grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+        <div class="empty-icon">🏠</div><p>公開中の支部情報はありません</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = branches.map(b => `
+      <div class="branch-card">
+        <div class="branch-header">
+          <div class="branch-number">No.${b.no}</div>
+          <div class="branch-name">${b.name}</div>
+        </div>
+        <div class="branch-body">
+          <div class="branch-item">
+            <div class="branch-icon">📍</div>
+            <div>
+              <div class="branch-info-label">主な活動場所</div>
+              <div class="branch-info-text">${b.place || '―'}</div>
+            </div>
+          </div>
+          <div class="branch-item">
+            <div class="branch-icon">📅</div>
+            <div>
+              <div class="branch-info-label">主な開催日程</div>
+              <div class="branch-info-text">${b.schedule || '―'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+      <div class="empty-icon">⚠️</div><p>支部情報の読み込みに失敗しました</p>
+    </div>`;
+  }
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let cells = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"' && text[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') { inQ = false; }
+      else { cur += ch; }
+    } else {
+      if (ch === '"') { inQ = true; }
+      else if (ch === ',') { cells.push(cur.trim()); cur = ''; }
+      else if (ch === '\n') {
+        cells.push(cur.trim()); cur = '';
+        if (cells.some(c => c)) rows.push(cells);
+        cells = [];
+      } else if (ch !== '\r') { cur += ch; }
+    }
+  }
+  if (cur || cells.length) { cells.push(cur.trim()); if (cells.some(c => c)) rows.push(cells); }
+  return rows;
+}
+
+loadBranches();
+</script>
+</body>
+</html>
