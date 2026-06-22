@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レシピ一覧 | 新居浜市食生活改善推進協議会</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans JP',sans-serif;color:#1a1a1a;line-height:1.7;background:#fff}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-logo{font-size:14px;font-weight:700;color:#2e7d32;text-decoration:none;display:flex;align-items:center;gap:8px}
+.nav-links{display:flex;gap:24px;list-style:none}
+.nav-links a{font-size:13px;color:#555;text-decoration:none;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:#2e7d32;font-weight:700}
+.nav-cta{background:#2e7d32;color:#fff;font-size:13px;padding:8px 16px;border-radius:20px;text-decoration:none}
+
+/* ページヘッダー */
+.page-header{margin-top:60px;background:#f0f7f0;padding:48px 24px;text-align:center}
+.page-header .label{font-size:12px;letter-spacing:3px;color:#2e7d32;font-weight:700;margin-bottom:8px}
+.page-header h1{font-size:clamp(24px,3vw,36px);font-weight:700;color:#1a1a1a}
+
+.container{max-width:1000px;margin:0 auto;padding:0 24px}
+
+/* フィルター */
+.filter-bar{padding:24px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-label{font-size:13px;color:#666;margin-right:4px}
+.filter-btn{border:1.5px solid #e5e7eb;background:#fff;color:#555;font-size:13px;font-family:'Noto Sans JP',sans-serif;padding:6px 16px;border-radius:20px;cursor:pointer;transition:all .2s}
+.filter-btn:hover,.filter-btn.active{border-color:#2e7d32;background:#2e7d32;color:#fff}
+
+/* 検索 */
+.search-bar{padding:0 0 24px;display:flex;gap:10px}
+.search-input{flex:1;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 16px;font-size:14px;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border .2s}
+.search-input:focus{border-color:#2e7d32}
+
+/* レシピグリッド */
+.recipes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding-bottom:60px}
+.recipe-card{background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;transition:transform .2s,box-shadow .2s;cursor:pointer}
+.recipe-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.1)}
+.recipe-img{width:100%;height:180px;object-fit:cover}
+.recipe-img-placeholder{width:100%;height:180px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);display:flex;align-items:center;justify-content:center;font-size:52px}
+.recipe-body{padding:16px}
+.recipe-tag{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;margin-bottom:8px}
+.recipe-card h3{font-size:15px;font-weight:700;margin-bottom:8px;color:#1a1a1a;line-height:1.4}
+.recipe-meta{font-size:12px;color:#888;display:flex;gap:12px;flex-wrap:wrap}
+.recipe-meta span{display:flex;align-items:center;gap:3px}
+
+/* モーダル（レシピ詳細） */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-img{width:100%;height:240px;object-fit:cover;border-radius:20px 20px 0 0}
+.modal-img-placeholder{width:100%;height:200px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);display:flex;align-items:center;justify-content:center;font-size:72px;border-radius:20px 20px 0 0}
+.modal-body{padding:24px}
+.modal-body h2{font-size:22px;font-weight:700;margin-bottom:8px}
+.modal-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.modal-meta-item{background:#f3f4f6;border-radius:8px;padding:6px 12px;font-size:13px;color:#555}
+.modal-section{margin-bottom:20px}
+.modal-section h3{font-size:14px;font-weight:700;color:#2e7d32;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #e8f5e9}
+.modal-section p,.modal-section ul{font-size:14px;color:#444;line-height:1.8}
+.modal-section ul{padding-left:20px}
+.modal-close{position:sticky;top:12px;float:right;background:#fff;border:1.5px solid #e5e7eb;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:12px 12px 0 0;z-index:1}
+
+/* ローディング・空 */
+.state-msg{text-align:center;padding:60px 24px;color:#999;font-size:14px}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+footer{background:#1b5e20;color:#fff;padding:32px 24px;text-align:center}
+footer p{font-size:13px;color:rgba(255,255,255,0.7);margin-top:6px}
+
+@media(max-width:768px){
+  .nav-links{display:none}
+  .recipes-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .recipes-grid{grid-template-columns:1fr}
+}
+
+/* 印刷FABボタン */
+.print-fab{position:fixed;bottom:28px;right:28px;z-index:150;background:#2e7d32;color:#fff;border:none;border-radius:50px;padding:12px 22px;font-size:14px;font-family:'Noto Sans JP',sans-serif;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.18);display:flex;align-items:center;gap:6px;transition:transform .2s,box-shadow .2s}
+.print-fab:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.22)}
+
+/* 印刷モーダル */
+.pmodal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+.pmodal-overlay.open{display:flex}
+.pmodal{background:#fff;border-radius:20px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;padding:28px 32px}
+.pmodal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pmodal-head h2{font-size:18px;font-weight:700}
+.pmodal-close{background:none;border:1.5px solid #e5e7eb;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.pstep-indicator{font-size:12px;color:#aaa;margin-bottom:20px}
+.pstep-indicator span{color:#2e7d32;font-weight:700}
+.pstep{display:none}
+.pstep.active{display:block}
+.pstep-title{font-size:13px;font-weight:700;color:#2e7d32;letter-spacing:1px;margin-bottom:14px}
+
+/* レイアウト選択 */
+.layout-options{display:flex;gap:16px;margin-bottom:8px}
+.layout-opt{flex:1;border:2px solid #e5e7eb;border-radius:12px;padding:14px;cursor:pointer;transition:border .2s,background .2s;text-align:center}
+.layout-opt:hover{border-color:#81c784;background:#f9fdf9}
+.layout-opt.selected{border-color:#2e7d32;background:#f0f7f0}
+.layout-preview{width:100%;aspect-ratio:3/4;border:1px solid #ddd;margin-bottom:8px;display:grid;gap:2px;background:#e0e0e0;border-radius:4px;overflow:hidden;padding:2px}
+.layout-preview.lp4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.layout-preview.lp3{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.lp-cell{background:#c8e6c9;border-radius:2px}
+.lp-cell.span2{grid-row:1/3}
+.layout-opt-label{font-size:13px;font-weight:700;color:#333}
+.layout-opt-desc{font-size:11px;color:#888;margin-top:3px}
+
+/* レシピ選択 */
+.pstep2-hint{font-size:12px;color:#888;margin-bottom:12px}
+.recipe-sel-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:4px;padding-right:4px}
+.rsel-card{border:2px solid #e5e7eb;border-radius:10px;padding:10px 12px;cursor:pointer;transition:border .2s;position:relative}
+.rsel-card:hover{border-color:#81c784;background:#f9fdf9}
+.rsel-card.selected{border-color:#2e7d32;background:#f0f7f0}
+.rsel-card.disabled{opacity:.35;pointer-events:none}
+.rsel-badge{position:absolute;top:8px;right:8px;background:#2e7d32;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}
+.rsel-card.selected .rsel-badge{display:flex}
+.rsel-name{font-size:13px;font-weight:700;line-height:1.4;padding-right:24px}
+.rsel-cat{font-size:11px;color:#2e7d32;margin-top:3px}
+
+/* フッターボタン */
+.pmodal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid #f0f0f0;padding-top:16px}
+.pbtn{border:none;border-radius:20px;padding:10px 24px;font-size:14px;font-family:'Noto Sans JP',sans-serif;font-weight:700;cursor:pointer;transition:opacity .2s}
+.pbtn:disabled{opacity:.4;cursor:not-allowed}
+.pbtn-primary{background:#2e7d32;color:#fff}
+.pbtn-secondary{background:#f3f4f6;color:#555}
+
+/* 印刷エリア（画面では非表示） */
+#print-area{display:none}
+
+/* 印刷スタイル */
+@media print{
+  body>*{display:none!important}
+  #print-area{display:block!important}
+  @page{size:A4 portrait;margin:10mm}
+  .pa4{width:190mm;height:267mm;display:grid;gap:3mm;box-sizing:border-box}
+  .pa4.l4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .pa4.l3{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .pcell{border:0.5pt solid #bbb;border-radius:2mm;padding:4mm;overflow:hidden;display:flex;flex-direction:column;font-family:'Noto Sans JP',sans-serif}
+  .pcell.span2{grid-row:1/3}
+  .pcell-tag{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:7pt;font-weight:700;padding:0.5mm 2.5mm;border-radius:10mm;margin-bottom:2mm}
+  .pcell h2{font-size:10pt;font-weight:700;margin-bottom:2mm;line-height:1.3;color:#1a1a1a}
+  .pcell-meta{display:flex;gap:4mm;font-size:7pt;color:#555;margin-bottom:3mm}
+  .pcell-divider{border:none;border-top:0.5pt solid #e0e0e0;margin:2mm 0}
+  .pcell-section{margin-bottom:2.5mm}
+  .pcell-section h3{font-size:7.5pt;font-weight:700;color:#2e7d32;border-bottom:0.5pt solid #c8e6c9;padding-bottom:0.5mm;margin-bottom:1.5mm}
+  .pcell-section p{font-size:7pt;line-height:1.7;color:#333;white-space:pre-wrap}
+  .pcell-img{width:100%;height:22mm;object-fit:cover;border-radius:1mm;margin-bottom:2.5mm}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><span>🌿</span>ヘルスメイト通信</a>
+  <ul class="nav-links">
+    <li><a href="index.html#about">私たちについて</a></li>
+    <li><a href="index.html#activities">活動内容</a></li>
+    <li><a href="index.html#calendar">活動予定</a></li>
+    <li><a href="recipes.html" class="active">レシピ</a></li>
+    <li><a href="index.html#contact">お問い合わせ</a></li>
+  </ul>
+  <a href="index.html#contact" class="nav-cta">お問い合わせ</a>
+</nav>
+
+<div class="page-header">
+  <div class="label">RECIPE</div>
+  <h1>ヘルスメイトのおすすめレシピ</h1>
+</div>
+
+<div class="container">
+  <div class="filter-bar">
+    <span class="filter-label">カテゴリ：</span>
+    <button class="filter-btn active" data-cat="all">すべて</button>
+    <button class="filter-btn" data-cat="野菜">野菜</button>
+    <button class="filter-btn" data-cat="汁物">汁物</button>
+    <button class="filter-btn" data-cat="魚">魚</button>
+    <button class="filter-btn" data-cat="肉">肉</button>
+    <button class="filter-btn" data-cat="デザート">デザート</button>
+  </div>
+  <div class="search-bar">
+    <input class="search-input" type="text" id="search" placeholder="レシピ名・材料で検索…">
+  </div>
+  <div class="recipes-grid" id="recipes-grid">
+    <div class="state-msg" style="grid-column:1/-1">
+      <div class="empty-icon">🍽️</div>
+      <p>レシピを読み込んでいます…</p>
+    </div>
+  </div>
+</div>
+
+<!-- レシピ詳細モーダル -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- 印刷FABボタン -->
+<button class="print-fab" onclick="openPrintModal()">🖨 印刷</button>
+
+<!-- 印刷設定モーダル -->
+<div class="pmodal-overlay" id="pmodal">
+  <div class="pmodal">
+    <div class="pmodal-head">
+      <h2>レシピ印刷</h2>
+      <button class="pmodal-close" onclick="closePrintModal()">✕</button>
+    </div>
+    <div class="pstep-indicator" id="pstep-indicator">ステップ <span id="pstep-num">1</span> / 2</div>
+
+    <!-- STEP1: レイアウト選択 -->
+    <div class="pstep active" id="pstep1">
+      <div class="pstep-title">STEP 1 ― レイアウトを選んでください</div>
+      <div class="layout-options">
+        <div class="layout-opt" id="layout-opt-4" onclick="selectLayout('4')">
+          <div class="layout-preview lp4">
+            <div class="lp-cell"></div><div class="lp-cell"></div>
+            <div class="lp-cell"></div><div class="lp-cell"></div>
+          </div>
+          <div class="layout-opt-label">4枚配置</div>
+          <div class="layout-opt-desc">左上・右上・左下・右下</div>
+        </div>
+        <div class="layout-opt" id="layout-opt-3" onclick="selectLayout('3')">
+          <div class="layout-preview lp3">
+            <div class="lp-cell span2"></div>
+            <div class="lp-cell"></div><div class="lp-cell"></div>
+          </div>
+          <div class="layout-opt-label">3枚配置</div>
+          <div class="layout-opt-desc">左側大きめ・右上・右下</div>
+        </div>
+      </div>
+      <div class="pmodal-footer">
+        <button class="pbtn pbtn-primary" id="btn-to-step2" onclick="goStep2()" disabled>次へ →</button>
+      </div>
+    </div>
+
+    <!-- STEP2: レシピ選択 -->
+    <div class="pstep" id="pstep2">
+      <div class="pstep-title">STEP 2 ― 印刷するレシピを選んでください</div>
+      <div class="pstep2-hint" id="pstep2-hint"></div>
+      <div class="recipe-sel-grid" id="recipe-selector"></div>
+      <div class="pmodal-footer">
+        <button class="pbtn pbtn-secondary" onclick="showPStep(1)">← 戻る</button>
+        <button class="pbtn pbtn-primary" onclick="executePrint()">🖨 印刷する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 印刷用エリア（画面には表示しない） -->
+<div id="print-area"></div>
+
+<footer>
+  <div style="font-size:14px;font-weight:700;">🌿 新居浜市食生活改善推進協議会</div>
+  <p>© 2026 新居浜市食生活改善推進協議会 All rights reserved.</p>
+</footer>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQLFT2rZe6n58E2YcJorAQ9QpQhGraUWtq8TVccCf1TH1ltghg66wNxmhcVn1rvuQxNATdrwbS0CsKn/pub?gid=1659069713&single=true&output=csv';
+
+let allRecipes = [];
+let currentCat = 'all';
+let searchWord = '';
+
+// スプレッドシートからレシピ一覧を取得
+async function loadRecipes() {
+  const grid = document.getElementById('recipes-grid');
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (text.trimStart().startsWith('<')) throw new Error('シートが公開されていません');
+    const rows = parseCSV(text).slice(1);
+    // 列: No, レシピ名, カテゴリ, 材料, 作り方, 人数, カロリー, 塩分量, 写真URL, 公開
+    console.log('CSV行数:', rows.length);
+    if (rows[0]) console.log('1行目サンプル:', JSON.stringify(rows[0]));
+    allRecipes = rows
+      .filter(r => r[9] && r[9].trim() === '公開' && r[1])
+      .map(r => ({
+        no: r[0], name: r[1], cat: r[2], ingredients: r[3],
+        steps: r[4], serving: r[5], salt: r[6], time: r[7], imgUrl: r[8]
+      }));
+    renderRecipes();
+  } catch(e) {
+    grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+      <div class="empty-icon">⚠️</div><p>レシピの読み込みに失敗しました</p>
+    </div>`;
+  }
+}
+
+function renderRecipes() {
+  const grid = document.getElementById('recipes-grid');
+  const filtered = allRecipes.filter(r => {
+    const catOk = currentCat === 'all' || r.cat === currentCat;
+    const word = searchWord.toLowerCase();
+    const searchOk = !word || r.name.includes(word) || (r.ingredients||'').includes(word);
+    return catOk && searchOk;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
+      <div class="empty-icon">🔍</div><p>該当するレシピが見つかりませんでした</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(r => {
+    const imgHtml = r.imgUrl
+      ? `<img class="recipe-img" src="${convertDriveUrl(r.imgUrl)}" alt="${r.name}" loading="lazy">`
+      : `<div class="recipe-img-placeholder">🍽️</div>`;
+    return `
+      <div class="recipe-card" onclick="openModal('${r.no}')">
+        ${imgHtml}
+        <div class="recipe-body">
+          <span class="recipe-tag">${r.cat || '料理'}</span>
+          <h3>${r.name}</h3>
+          <div class="recipe-meta">
+            ${r.salt ? `<span>🧂 塩分${r.salt}</span>` : ''}
+            ${r.time ? `<span>⏱ ${r.time}</span>` : ''}
+            ${r.serving ? `<span>👥 ${r.serving}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openModal(no) {
+  const r = allRecipes.find(x => x.no === no);
+  if (!r) return;
+  const imgHtml = r.imgUrl
+    ? `<img class="modal-img" src="${convertDriveUrl(r.imgUrl)}" alt="${r.name}">`
+    : `<div class="modal-img-placeholder">🍽️</div>`;
+  const ingredientList = (r.ingredients || '')
+    .split(/[、，,\n]/).filter(s => s.trim())
+    .map(s => `<li>${s.trim()}</li>`).join('');
+  const stepList = (r.steps || '')
+    .split(/[\n①②③④⑤⑥⑦⑧⑨⑩]/).filter(s => s.trim())
+    .map((s,i) => `<li>【${i+1}】${s.trim()}</li>`).join('');
+
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+    ${imgHtml}
+    <div class="modal-body">
+      <span class="recipe-tag">${r.cat || '料理'}</span>
+      <h2>${r.name}</h2>
+      <div class="modal-meta">
+        ${r.serving ? `<div class="modal-meta-item">👥 ${r.serving}</div>` : ''}
+        ${r.salt ? `<div class="modal-meta-item">🧂 塩分${r.salt}</div>` : ''}
+        ${r.time ? `<div class="modal-meta-item">⏱ ${r.time}</div>` : ''}
+      </div>
+      ${ingredientList ? `<div class="modal-section"><h3>材料</h3><ul>${ingredientList}</ul></div>` : ''}
+      ${stepList ? `<div class="modal-section"><h3>作り方</h3><ul>${stepList}</ul></div>` : ''}
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target.id === 'modal') document.getElementById('modal').classList.remove('open');
+}
+
+function convertDriveUrl(url) {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : url;
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let cells = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"' && text[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') { inQ = false; }
+      else { cur += ch; }
+    } else {
+      if (ch === '"') { inQ = true; }
+      else if (ch === ',') { cells.push(cur.trim()); cur = ''; }
+      else if (ch === '\n') {
+        cells.push(cur.trim()); cur = '';
+        if (cells.some(c => c)) rows.push(cells);
+        cells = [];
+      } else if (ch !== '\r') { cur += ch; }
+    }
+  }
+  if (cur || cells.length) { cells.push(cur.trim()); if (cells.some(c => c)) rows.push(cells); }
+  return rows;
+}
+
+// フィルターボタン
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCat = btn.dataset.cat;
+    renderRecipes();
+  });
+});
+
+// 検索
+document.getElementById('search').addEventListener('input', e => {
+  searchWord = e.target.value;
+  renderRecipes();
+});
+
+loadRecipes();
+
+// ========== 印刷機能 ==========
+let printLayout = null;
+let printSelected = [];
+
+function openPrintModal() {
+  printLayout = null;
+  printSelected = [];
+  document.querySelectorAll('.layout-opt').forEach(el => el.classList.remove('selected'));
+  document.getElementById('btn-to-step2').disabled = true;
+  showPStep(1);
+  document.getElementById('pmodal').classList.add('open');
+}
+
+function closePrintModal() {
+  document.getElementById('pmodal').classList.remove('open');
+}
+
+function showPStep(n) {
+  document.querySelectorAll('.pstep').forEach(el => el.classList.remove('active'));
+  document.getElementById('pstep' + n).classList.add('active');
+  document.getElementById('pstep-num').textContent = n;
+  if (n === 2) renderRecipeSelector();
+}
+
+function selectLayout(n) {
+  printLayout = n;
+  printSelected = [];
+  document.querySelectorAll('.layout-opt').forEach(el => el.classList.remove('selected'));
+  document.getElementById('layout-opt-' + n).classList.add('selected');
+  document.getElementById('btn-to-step2').disabled = false;
+}
+
+function goStep2() {
+  if (!printLayout) return;
+  showPStep(2);
+}
+
+function renderRecipeSelector() {
+  const max = parseInt(printLayout);
+  document.getElementById('pstep2-hint').textContent = `${max}枚まで選択できます（現在 0 / ${max}）`;
+  document.getElementById('recipe-selector').innerHTML = allRecipes.map(r => `
+    <div class="rsel-card" id="sel-${r.no}" onclick="toggleRecipeSel('${r.no}')">
+      <div class="rsel-badge" id="badge-${r.no}"></div>
+      <div class="rsel-name">${r.name}</div>
+      <div class="rsel-cat">${r.cat}</div>
+    </div>
+  `).join('');
+}
+
+function toggleRecipeSel(no) {
+  const max = parseInt(printLayout);
+  const idx = printSelected.indexOf(no);
+  if (idx >= 0) {
+    printSelected.splice(idx, 1);
+    document.getElementById('sel-' + no).classList.remove('selected');
+  } else {
+    if (printSelected.length >= max) return;
+    printSelected.push(no);
+    document.getElementById('sel-' + no).classList.add('selected');
+  }
+  // バッジ番号更新
+  allRecipes.forEach(r => {
+    const badge = document.getElementById('badge-' + r.no);
+    const i = printSelected.indexOf(r.no);
+    if (badge) badge.textContent = i >= 0 ? i + 1 : '';
+  });
+  // 上限時に他をdisabled
+  document.querySelectorAll('.rsel-card').forEach(el => {
+    const n = el.id.replace('sel-', '');
+    el.classList.toggle('disabled', printSelected.length >= max && !printSelected.includes(n));
+  });
+  document.getElementById('pstep2-hint').textContent =
+    `${max}枚まで選択できます（現在 ${printSelected.length} / ${max}）`;
+}
+
+function executePrint() {
+  if (printSelected.length === 0) { alert('レシピを1つ以上選択してください'); return; }
+  const recipes = printSelected.map(no => allRecipes.find(r => r.no === no)).filter(Boolean);
+  const gridClass = printLayout === '4' ? 'l4' : 'l3';
+
+  let cells = '';
+  if (printLayout === '4') {
+    for (let i = 0; i < 4; i++) cells += buildPrintCell(recipes[i] || null, false);
+  } else {
+    cells += buildPrintCell(recipes[0] || null, true);
+    cells += buildPrintCell(recipes[1] || null, false);
+    cells += buildPrintCell(recipes[2] || null, false);
+  }
+
+  document.getElementById('print-area').innerHTML = `<div class="pa4 ${gridClass}">${cells}</div>`;
+  closePrintModal();
+  setTimeout(() => window.print(), 150);
+}
+
+function buildPrintCell(r, isLarge) {
+  const spanClass = isLarge ? ' span2' : '';
+  if (!r) return `<div class="pcell${spanClass}"></div>`;
+
+  const ingredients = (r.ingredients || '').split(/[、，,\n]/).filter(s => s.trim()).join('、');
+  const steps = (r.steps || '')
+    .replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, (s, _, str) => {
+      return '\n' + ('①②③④⑤⑥⑦⑧⑨⑩'.indexOf(s) + 1) + '. ';
+    }).trim();
+  const imgHtml = r.imgUrl
+    ? `<img class="pcell-img" src="${convertDriveUrl(r.imgUrl)}" alt="${r.name}">`
+    : '';
+
+  return `<div class="pcell${spanClass}">
+    <span class="pcell-tag">${r.cat || '料理'}</span>
+    <h2>${r.name}</h2>
+    <div class="pcell-meta">
+      ${r.serving ? `<span>👥 ${r.serving}</span>` : ''}
+      ${r.salt ? `<span>🧂 塩分 ${r.salt}</span>` : ''}
+    </div>
+    ${imgHtml}
+    ${ingredients ? `<div class="pcell-section"><h3>材料</h3><p>${ingredients}</p></div>` : ''}
+    ${steps ? `<div class="pcell-section"><h3>作り方</h3><p>${steps}</p></div>` : ''}
+  </div>`;
+}
+</script>
+</body>
+</html>
