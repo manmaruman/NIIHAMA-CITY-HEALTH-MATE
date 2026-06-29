@@ -141,7 +141,7 @@ async function loadBranches() {
     // 列: No, 支部名, 主な活動場所, 主な開催日程, 公開
     const branches = rows
       .filter(r => r[4] && r[4].trim() === '公開' && r[1])
-      .map(r => ({ no: r[0], name: r[1], place: r[2], schedule: r[3] }));
+      .map(r => ({ no: r[0], name: r[1], place: r[2], schedule: r[3], lat: r[5], lng: r[6] }));
 
     if (branches.length === 0) {
       grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1">
@@ -179,14 +179,29 @@ async function loadBranches() {
       </div>
     `).join('');
 
-    // マップにピンを追加（場所1つにつき1ピン・Nominatim利用規約: 1秒/リクエスト）
+    // マップにピンを追加（場所1つにつき1ピン）
+    // スプレッドシートの緯度・経度列を優先、なければNominatimで検索
     const bounds = [];
-    let reqIndex = 0;
+    let nominatimIndex = 0;
     for (const [place, bs] of places) {
       if (!place || place === '未定') continue;
-      if (reqIndex > 0) await new Promise(r => setTimeout(r, 1100));
-      reqIndex++;
-      const latlng = await geocode(place);
+
+      // 緯度・経度が入力済みならそのまま使用
+      const firstWithCoords = bs.find(b => b.lat && b.lng);
+      let latlng = null;
+      if (firstWithCoords) {
+        const lat = parseFloat(firstWithCoords.lat);
+        const lng = parseFloat(firstWithCoords.lng);
+        if (!isNaN(lat) && !isNaN(lng)) latlng = [lat, lng];
+      }
+
+      // 座標がなければNominatimで検索（レート制限: 1秒/回）
+      if (!latlng) {
+        if (nominatimIndex > 0) await new Promise(r => setTimeout(r, 1100));
+        nominatimIndex++;
+        latlng = await geocode(place);
+      }
+
       if (!latlng) continue;
       bounds.push(latlng);
       const popupRows = bs.map(b =>
