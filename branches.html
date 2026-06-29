@@ -31,16 +31,17 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .branch-card{background:#fff;border-radius:16px;border:1.5px solid #FFE0C0;overflow:hidden;transition:transform .2s,box-shadow .2s}
 .branch-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(255,140,0,0.12)}
 
-.branch-header{background:linear-gradient(135deg,#FF8C00,#FFB347);padding:20px 24px}
-.branch-number{font-size:11px;color:rgba(255,255,255,0.8);font-weight:700;letter-spacing:2px;margin-bottom:4px}
-.branch-name{font-size:20px;font-weight:700;color:#fff}
+.branch-header{background:linear-gradient(135deg,#FF8C00,#FFB347);padding:16px 24px;display:flex;align-items:center;gap:12px}
+.branch-header-icon{font-size:22px}
+.branch-name{font-size:18px;font-weight:700;color:#fff}
 
-.branch-body{padding:20px 24px}
-.branch-item{display:flex;gap:12px;margin-bottom:16px}
-.branch-item:last-child{margin-bottom:0}
-.branch-icon{width:32px;height:32px;border-radius:50%;background:#FFF4E6;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px}
-.branch-info-label{font-size:11px;font-weight:700;color:#FF8C00;letter-spacing:1px;margin-bottom:2px}
-.branch-info-text{font-size:14px;color:#333;line-height:1.6}
+.branch-body{padding:16px 24px}
+.branch-schedule-table{width:100%;border-collapse:collapse}
+.branch-schedule-table tr{border-bottom:1px solid #FFF0E0}
+.branch-schedule-table tr:last-child{border-bottom:none}
+.branch-schedule-table td{padding:10px 4px;font-size:14px;vertical-align:top}
+.branch-schedule-table td:first-child{color:#FF8C00;font-weight:700;white-space:nowrap;padding-right:12px;width:1%}
+.branch-schedule-table td:last-child{color:#555}
 
 .state-msg{text-align:center;padding:60px 24px;color:#999;font-size:14px}
 .empty-icon{font-size:48px;margin-bottom:12px}
@@ -149,44 +150,54 @@ async function loadBranches() {
       return;
     }
 
-    // カード表示
-    grid.innerHTML = branches.map(b => `
+    // 場所でグループ化
+    const placeMap = {};
+    branches.forEach(b => {
+      const key = b.place || '未定';
+      if (!placeMap[key]) placeMap[key] = [];
+      placeMap[key].push(b);
+    });
+    const places = Object.entries(placeMap);
+
+    // 場所別カード表示
+    grid.innerHTML = places.map(([place, bs]) => `
       <div class="branch-card">
         <div class="branch-header">
-          <div class="branch-number">No.${b.no}</div>
-          <div class="branch-name">${b.name}</div>
+          <div class="branch-header-icon">📍</div>
+          <div class="branch-name">${place}</div>
         </div>
         <div class="branch-body">
-          <div class="branch-item">
-            <div class="branch-icon">📍</div>
-            <div>
-              <div class="branch-info-label">主な活動場所</div>
-              <div class="branch-info-text">${b.place || '―'}</div>
-            </div>
-          </div>
-          <div class="branch-item">
-            <div class="branch-icon">📅</div>
-            <div>
-              <div class="branch-info-label">主な開催日程</div>
-              <div class="branch-info-text">${b.schedule || '―'}</div>
-            </div>
-          </div>
+          <table class="branch-schedule-table">
+            ${bs.map(b => `
+              <tr>
+                <td>${b.name}</td>
+                <td>${b.schedule || '―'}</td>
+              </tr>
+            `).join('')}
+          </table>
         </div>
       </div>
     `).join('');
 
-    // マップにピンを追加（Nominatim 利用規約: 1秒/リクエスト）
+    // マップにピンを追加（場所1つにつき1ピン・Nominatim利用規約: 1秒/リクエスト）
     const bounds = [];
-    for (let i = 0; i < branches.length; i++) {
-      const b = branches[i];
-      if (!b.place) continue;
-      if (i > 0) await new Promise(r => setTimeout(r, 1100));
-      const latlng = await geocode(b.place);
+    let reqIndex = 0;
+    for (const [place, bs] of places) {
+      if (!place || place === '未定') continue;
+      if (reqIndex > 0) await new Promise(r => setTimeout(r, 1100));
+      reqIndex++;
+      const latlng = await geocode(place);
       if (!latlng) continue;
       bounds.push(latlng);
+      const popupRows = bs.map(b =>
+        `<tr><td style="color:#FF8C00;font-weight:700;padding-right:8px;white-space:nowrap">${b.name}</td><td style="color:#555;font-size:12px">${b.schedule || ''}</td></tr>`
+      ).join('');
       L.marker(latlng, { icon: markerIcon })
         .addTo(map)
-        .bindPopup(`<div class="map-popup-name">${b.name}</div><div class="map-popup-place">${b.place}</div>`);
+        .bindPopup(`
+          <div class="map-popup-name">📍 ${place}</div>
+          <table style="margin-top:6px;border-collapse:collapse">${popupRows}</table>
+        `);
     }
     if (bounds.length > 1) map.fitBounds(bounds, { padding: [40, 40] });
     else if (bounds.length === 1) map.setView(bounds[0], 15);
